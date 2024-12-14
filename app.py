@@ -3,6 +3,22 @@ import asyncio
 import aiohttp
 from newspaper import Article
 from datetime import datetime
+import streamlit as st
+
+# Meta tag to allow iframe embedding
+st.markdown(
+    """
+    <style>
+    iframe {
+        width: 100%;
+        height: 100vh;
+        border: none;
+    }
+    </style>
+    """, 
+    unsafe_allow_html=True
+)
+
 
 # Predefined categories and associated keywords
 categories = {
