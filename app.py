@@ -56,12 +56,22 @@ async def fetch_article(session, url):
     # Combine text to search for keywords
     text_to_search = f"{title} {meta_description} {first_paragraph} {last_paragraph}"
     category = categorize_by_keywords(text_to_search)
+    # Ensure publish_date exists before attempting to access it
+    published_date = article.publish_date if article.publish_date is not None else []
+    if published_date:
+        # If publish_date is not None, format it
+        published = datetime(*published_date[:6]).strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        # If publish_date is None, assign a default value or handle accordingly
+        published = "Unknown"
     
     return {
-        'link': url,
-        'category': category,
-        'published': datetime(*article.publish_date[:6]).strftime('%Y-%m-%d %H:%M:%S')
-    }
+            'title': article.title,
+            'url': article.url,
+            'published': published,  # Use the formatted date
+            'text': article.text,
+            'source': url
+        }
 
 # Function to fetch articles from RSS
 async def fetch_articles():
