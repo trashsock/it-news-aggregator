@@ -4,6 +4,7 @@ import aiohttp
 from newspaper import Article
 from datetime import datetime
 import streamlit as st
+import feedparser
 
 # Meta tag to allow iframe embedding
 st.markdown(
