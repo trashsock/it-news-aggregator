@@ -60,7 +60,7 @@ async def fetch_article(session, url):
     published_date = article.publish_date if article.publish_date is not None else []
     if published_date:
         # If publish_date is not None, format it
-        published = datetime(*published_date[:6]).strftime('%Y-%m-%d %H:%M:%S')
+        published = article.publish_date.strftime('%Y-%m-%d %H:%M:%S')
     else:
         # If publish_date is None, assign a default value or handle accordingly
         published = "Unknown"
