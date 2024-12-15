@@ -61,12 +61,16 @@ async def fetch_article(session, url):
     published_date = article.publish_date
     published = published_date.strftime('%Y-%m-%d %H:%M:%S') if published_date else "Unknown"
 
+    # Get the publisher (from the URL)
+    publisher = article.source_url.split('/')[2] if article.source_url else "Unknown"
+
     return {
         'title': title,
         'url': url,
         'published': published,
         'text': article.text,
-        'category': category
+        'category': category,
+        'publisher': publisher
     }
 
 # Function to fetch articles from RSS feeds
@@ -111,7 +115,16 @@ def display_news(articles):
     for category, articles in grouped_articles.items():
         st.subheader(f"{category} ({len(articles)} articles)")
         for article in articles:
-            st.write(f"[{article['title']}]({article['url']}) - Published on {article['published']}")
+            st.markdown(f"### [{article['title']}]({article['url']})")
+            st.markdown(f"**Publisher:** {article['publisher']}")
+            st.markdown(f"**Category:** {article['category']}")
+            st.markdown(f"**Published on:** {article['published']}")
+            st.markdown(f"**Description:** {article['text'][:200]}...")  # Show a short preview of the article text
+
+            # Optional: Display a button to open the full article
+            if st.button(f"Read full article: {article['title']}", key=article['url']):
+                st.markdown(f"[Click here to read the full article]({article['url']})")
+            st.markdown("---")  # Add a separator between articles
 
 # Main Streamlit app
 def main():
