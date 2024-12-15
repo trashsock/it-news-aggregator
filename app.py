@@ -5,6 +5,7 @@ from newspaper import Article
 from datetime import datetime
 import feedparser
 
+
 # Meta tag to allow iframe embedding
 st.markdown(
     """
@@ -44,6 +45,9 @@ async def fetch_article(session, url):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
+
+    async with session.get(url, headers=headers) as response:
+        html = await response.text()
     
     # Use newspaper's Article to download and parse content
     article = Article(url)
@@ -79,40 +83,37 @@ async def fetch_article(session, url):
     }
 
 # Function to fetch articles from RSS
-async def fetch_articles():
-    articles = []
-    async with aiohttp.ClientSession(headers={
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }) as session:
-        # Replace with more RSS feeds (if needed)
-        rss_feeds = [
-            'https://www.cio.com/feed/',
-            'https://techcrunch.com/feed/',
-            'https://www.theverge.com/rss/index.xml',
-            'https://www.zdnet.com/news/rss.xml',
-            'https://www.wired.com/feed/',
-            'https://arstechnica.com/feed/',
-            'https://mashable.com/feed/',
-            'https://venturebeat.com/feed/',
-            'https://www.infoworld.com/index.rss',
-            'https://www.networkworld.com/news/rss.xml',
-            'https://www.computerworld.com/index.rss'
-        ]
-        tasks = []
-        for feed in rss_feeds:
-            rss_data = feedparser.parse(feed)
-            for entry in rss_data.entries:
-                tasks.append(fetch_article(session, entry.link))
+async def fetch_article(session, url):
+    async with session.get(url) as response:
+        html = await response.text()
+        
+    article = Article(url)
+    article.set_html(html)  # Set the HTML content directly
+    article.parse()
 
-        # Wait for all article fetch tasks to complete
-        fetched_articles = await asyncio.gather(*tasks)
-        for article in fetched_articles:
-            articles.append({
-                'link': article['url'],  # Fixed to fetch the correct URL
-                'category': article['category'],
-                'published': article['published']
-            })
-    return articles
+    title = article.title
+    meta_description = article.meta_description if article.meta_description else ""
+    first_paragraph = article.text.split('\n')[0]
+    last_paragraph = article.text.split('\n')[-1]
+
+    text_to_search = f"{title} {meta_description} {first_paragraph} {last_paragraph}"
+    category = categorize_by_keywords(text_to_search)
+    
+    published_date = article.publish_date if article.publish_date else None
+    if published_date:
+        published = published_date.strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        published = "Unknown"
+
+    return {
+        'title': article.title,
+        'url': article.url,
+        'published': published,
+        'text': article.text,
+        'source': url,
+        'category': category  # Add this to categorize articles
+    }
+
 
 # Streamlit user interface
 def display_news(articles):
@@ -135,7 +136,7 @@ def main():
     if st.button("Fetch News"):
         st.write("Fetching latest IT news...")
         # Fetch articles asynchronously
-        articles = asyncio.run(fetch_articles())
+        articles = asyncio.run(fetch_article())
         # Display articles in Streamlit
         display_news(articles)
 
