@@ -3,7 +3,6 @@ import asyncio
 import aiohttp
 from newspaper import Article
 from datetime import datetime
-import streamlit as st
 import feedparser
 
 # Meta tag to allow iframe embedding
@@ -19,7 +18,6 @@ st.markdown(
     """, 
     unsafe_allow_html=True
 )
-
 
 # Predefined categories and associated keywords
 categories = {
@@ -43,8 +41,13 @@ def categorize_by_keywords(text):
 
 # Fetch and process articles
 async def fetch_article(session, url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    # Use newspaper's Article to download and parse content
     article = Article(url)
-    article.download()
+    article.download(headers=headers)  # Set custom User-Agent
     article.parse()
     
     # Get the title, description, and first/last paragraphs for keyword search
@@ -56,6 +59,7 @@ async def fetch_article(session, url):
     # Combine text to search for keywords
     text_to_search = f"{title} {meta_description} {first_paragraph} {last_paragraph}"
     category = categorize_by_keywords(text_to_search)
+    
     # Ensure publish_date exists before attempting to access it
     published_date = article.publish_date if article.publish_date is not None else []
     if published_date:
@@ -66,17 +70,20 @@ async def fetch_article(session, url):
         published = "Unknown"
     
     return {
-            'title': article.title,
-            'url': article.url,
-            'published': published,  # Use the formatted date
-            'text': article.text,
-            'source': url
-        }
+        'title': article.title,
+        'url': article.url,
+        'published': published,  # Use the formatted date
+        'text': article.text,
+        'category': category,
+        'source': url
+    }
 
 # Function to fetch articles from RSS
 async def fetch_articles():
     articles = []
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers={
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }) as session:
         # Replace with more RSS feeds (if needed)
         rss_feeds = [
             'https://www.cio.com/feed/',
@@ -101,7 +108,7 @@ async def fetch_articles():
         fetched_articles = await asyncio.gather(*tasks)
         for article in fetched_articles:
             articles.append({
-                'link': article['link'],
+                'link': article['url'],  # Fixed to fetch the correct URL
                 'category': article['category'],
                 'published': article['published']
             })
