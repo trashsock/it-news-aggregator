@@ -3,6 +3,7 @@ import asyncio
 import aiohttp
 from newspaper import Article
 import feedparser
+from langdetect import detect, LangDetectException
 
 # Meta tag to allow iframe embedding
 st.markdown(
@@ -38,6 +39,13 @@ def categorize_by_keywords(text):
             return category
     return 'Other'
 
+# Function to detect if the article is in English
+def is_english(text):
+    try:
+        return detect(text) == 'en'
+    except LangDetectException:
+        return False
+
 # Function to fetch an article's content
 async def fetch_article(session, url):
     async with session.get(url) as response:
@@ -64,6 +72,10 @@ async def fetch_article(session, url):
     # Get the publisher (from the URL)
     publisher = article.source_url.split('/')[2] if article.source_url else "Unknown"
 
+    # Check if the article is in English
+    if not is_english(article.text):
+        return None  # Skip non-English articles
+
     return {
         'title': title,
         'url': url,
@@ -85,7 +97,6 @@ async def fetch_articles():
             'https://www.wired.com/feed/',
             'https://arstechnica.com/feed/',
             'https://mashable.com/feed/',
-            'https://venturebeat.com/feed/',
             'https://www.infoworld.com/index.rss',
             'https://www.networkworld.com/news/rss.xml',
             'https://www.computerworld.com/index.rss',
@@ -101,7 +112,7 @@ async def fetch_articles():
         for article in fetched_articles:
             if isinstance(article, Exception):
                 st.error(f"Error fetching article: {article}")
-            else:
+            elif article:  # Only append non-None articles (English ones)
                 articles.append(article)
     return articles
 
