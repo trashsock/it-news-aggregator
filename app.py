@@ -40,9 +40,9 @@ def categorize_by_keywords(text):
     return 'Other'
 
 # Function to detect if the article is in English using langid
-def is_english(text):
+def is_english(title):
     try:
-        lang, _ = langid.classify(text)
+        lang, _ = langid.classify(title)
         return lang == 'en'
     except Exception as e:
         return False
@@ -74,7 +74,7 @@ async def fetch_article(session, url):
     publisher = article.source_url.split('/')[2] if article.source_url else "Unknown"
 
     # Check if the article is in English using langid
-    if not is_english(article.text):
+    if not is_english(title):
         return None  # Skip non-English articles
 
     return {
