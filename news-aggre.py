@@ -12,7 +12,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
-import joblib
 
 # Additional NLP
 import nltk
@@ -127,19 +126,15 @@ async def fetch_and_process_article(session, url):
         # Combine multiple text sources for better classification
         full_text = f"{article.title} {article.meta_description} {article.text}"
         
-        # Keyword-based initial categorization as fallback
-        def keyword_categorize(text):
-            text_lower = text.lower()
-            for category, keywords in CATEGORIES.items():
-                if any(keyword in text_lower for keyword in keywords):
-                    return category
-            return 'Other'
-
         # Check if the article is in English
         lang, _ = langid.classify(article.title)
         if lang != 'en':
             return None
-        
+
+        # Use the AI-powered classifier for categorization
+        classifier = CIONewsClassifier()
+        category = classifier.predict(full_text)
+
         # Prepare article metadata
         return {
             'title': article.title,
@@ -147,7 +142,7 @@ async def fetch_and_process_article(session, url):
             'text': full_text,
             'published': article.publish_date.strftime('%Y-%m-%d') if article.publish_date else 'Unknown',
             'source': url.split('/')[2],
-            'initial_category': keyword_categorize(full_text)
+            'category': category
         }
     
     except Exception as e:
@@ -162,58 +157,57 @@ def main():
     RSS_FEEDS = [
         'https://www.cio.com/feed/',
         'https://techcrunch.com/feed/',
+        'https://www.theverge.com/rss/index.xml',
         'https://www.zdnet.com/news/rss.xml',
         'https://www.wired.com/feed/',
+        'https://arstechnica.com/feed/',
+        'https://mashable.com/feed/',
         'https://www.infoworld.com/index.rss',
-        'https://www.computerworld.com/index.rss'
+        'https://www.networkworld.com/news/rss.xml',
+        'https://www.computerworld.com/index.rss',
+        "https://asia.nikkei.com/rss",
+        "https://www.bloomberg.com/feeds/bbiz.xml",
+        "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best",
+        "https://apnews.com/rss",
+        "https://feeds.feedburner.com/TheHackersNews?format=xml",
+        "https://www.grahamcluley.com/feed/"
     ]
     
-    # Fetch News Button
-    if st.button("🔍 Fetch Latest Tech Insights"):
-        # Spinner for loading
-        with st.spinner('Gathering insights from top tech sources...'):
-            try:
-                # Fetch articles asynchronously
-                async def fetch_all_articles():
-                    async with aiohttp.ClientSession() as session:
-                        tasks = []
-                        for feed in RSS_FEEDS:
-                            parsed_feed = feedparser.parse(feed)
-                            for entry in parsed_feed.entries[:10]:  # Limit to 10 per feed
-                                tasks.append(fetch_and_process_article(session, entry.link))
-                        return [article for article in await asyncio.gather(*tasks) if article]
-                
-                articles = asyncio.run(fetch_all_articles())
-                
-                # Prepare data for classification
-                texts = [article['text'] for article in articles]
-                initial_categories = [article['initial_category'] for article in articles]
-                
-                # Train AI Classifier
-                classifier = CIONewsClassifier()
-                classifier.train(texts, initial_categories)
-                
-                # Enhance categorization
-                for article in articles:
-                    article['ai_category'] = classifier.predict(article['text'])
-                
-                # Display Results
-                st.subheader("🌐 Tech Leadership Insights")
-                
-                # Group and display by AI-predicted categories
-                for category in CATEGORIES.keys():
-                    category_articles = [art for art in articles if art['ai_category'] == category]
-                    
-                    if category_articles:
-                        st.markdown(f"### {category}")
-                        
-                        for article in category_articles[:5]:  # Top 5 per category
-                            st.markdown(f"#### [{article['title']}]({article['url']})")
-                            st.markdown(f"**Source:** {article['source']} | **Published:** {article['published']}")
-                            st.markdown("---")
+    # Fetch articles automatically when the app loads
+    with st.spinner('Gathering insights from top tech sources...'):
+        try:
+            # Fetch articles asynchronously
+            async def fetch_all_articles():
+                async with aiohttp.ClientSession() as session:
+                    tasks = []
+                    for feed in RSS_FEEDS:
+                        parsed_feed = feedparser.parse(feed)
+                        for entry in parsed_feed.entries[:10]:  # Limit to 10 per feed
+                            tasks.append(fetch_and_process_article(session, entry.link))
+                    return [article for article in await asyncio.gather(*tasks) if article]
             
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+            articles = asyncio.run(fetch_all_articles())
+            
+            # Display Results
+            st.subheader("🌐 Tech Leadership Insights")
+            
+            # Group and display by AI-predicted categories
+            for category in CATEGORIES.keys():
+                category_articles = [art for art in articles if art['category'] == category]
+                
+                if category_articles:
+                    st.markdown(f"### {category}")
+                    for article in category_articles:
+                        st.markdown(f"**[{article['title']}]({article['url']})**")
+                        st.markdown(f"**Publisher:** {article['source']}")
+                        st.markdown(f"**Category:** {article['category']}")
+                        st.markdown(f"**Published on:** {article['published']}")
+                        st.markdown(f"**Description:** {article['text'][:200]}...")  # Show a short preview of the article text
+
+                        st.markdown("---")  # Add a separator between articles
+            
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
 
 if __name__ == '__main__':
     main()
