@@ -2,9 +2,7 @@ import streamlit as st
 import asyncio
 import aiohttp
 from newspaper import Article
-from datetime import datetime
 import feedparser
-
 
 # Meta tag to allow iframe embedding
 st.markdown(
@@ -33,111 +31,94 @@ categories = {
     'Tech Industry Trends': ['tech trends', 'technology news', 'innovation', 'startups', 'technology leadership', 'disruptive technology', 'future of IT', 'emerging tech', 'digital transformation']
 }
 
-# Function to search for keywords in the article content
+# Function to categorize articles based on keywords
 def categorize_by_keywords(text):
     for category, keywords in categories.items():
         if any(keyword.lower() in text.lower() for keyword in keywords):
             return category
-    return 'Other'  # Default category if no keywords are found
+    return 'Other'
 
-# Fetch and process articles
-async def fetch_article(session, url):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-
-    async with session.get(url, headers=headers) as response:
-        html = await response.text()
-    
-    # Use newspaper's Article to download and parse content
-    article = Article(url)
-    article.download(headers=headers)  # Set custom User-Agent
-    article.parse()
-    
-    # Get the title, description, and first/last paragraphs for keyword search
-    title = article.title
-    meta_description = article.meta_description if article.meta_description else ""
-    first_paragraph = article.text.split('\n')[0]
-    last_paragraph = article.text.split('\n')[-1]
-    
-    # Combine text to search for keywords
-    text_to_search = f"{title} {meta_description} {first_paragraph} {last_paragraph}"
-    category = categorize_by_keywords(text_to_search)
-    
-    # Ensure publish_date exists before attempting to access it
-    published_date = article.publish_date if article.publish_date is not None else []
-    if published_date:
-        # If publish_date is not None, format it
-        published = article.publish_date.strftime('%Y-%m-%d %H:%M:%S')
-    else:
-        # If publish_date is None, assign a default value or handle accordingly
-        published = "Unknown"
-    
-    return {
-        'title': article.title,
-        'url': article.url,
-        'published': published,  # Use the formatted date
-        'text': article.text,
-        'category': category,
-        'source': url
-    }
-
-# Function to fetch articles from RSS
+# Function to fetch an article's content
 async def fetch_article(session, url):
     async with session.get(url) as response:
         html = await response.text()
-        
+
     article = Article(url)
-    article.set_html(html)  # Set the HTML content directly
+    article.set_html(html)
     article.parse()
 
+    # Get title, description, and content
     title = article.title
     meta_description = article.meta_description if article.meta_description else ""
     first_paragraph = article.text.split('\n')[0]
     last_paragraph = article.text.split('\n')[-1]
 
+    # Combine for keyword search
     text_to_search = f"{title} {meta_description} {first_paragraph} {last_paragraph}"
     category = categorize_by_keywords(text_to_search)
-    
-    published_date = article.publish_date if article.publish_date else None
-    if published_date:
-        published = published_date.strftime('%Y-%m-%d %H:%M:%S')
-    else:
-        published = "Unknown"
+
+    # Handle publish date
+    published_date = article.publish_date
+    published = published_date.strftime('%Y-%m-%d %H:%M:%S') if published_date else "Unknown"
 
     return {
-        'title': article.title,
-        'url': article.url,
+        'title': title,
+        'url': url,
         'published': published,
         'text': article.text,
-        'source': url,
-        'category': category  # Add this to categorize articles
+        'category': category
     }
 
+# Function to fetch articles from RSS feeds
+async def fetch_articles():
+    articles = []
+    async with aiohttp.ClientSession() as session:
+        rss_feeds = [
+            'https://www.cio.com/feed/',
+            'https://techcrunch.com/feed/',
+            'https://www.theverge.com/rss/index.xml',
+            'https://www.zdnet.com/news/rss.xml',
+            'https://www.wired.com/feed/',
+            'https://arstechnica.com/feed/',
+            'https://mashable.com/feed/',
+            'https://venturebeat.com/feed/',
+            'https://www.infoworld.com/index.rss',
+            'https://www.networkworld.com/news/rss.xml',
+            'https://www.computerworld.com/index.rss',
+            "https://asia.nikkei.com/rss",
+            "https://www.bloomberg.com/feeds/bbiz.xml",
+            "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best",
+            "https://apnews.com/rss"
+        ]
+        tasks = [fetch_article(session, entry.link) for feed in rss_feeds for entry in feedparser.parse(feed).entries]
+        fetched_articles = await asyncio.gather(*tasks, return_exceptions=True)
 
-# Streamlit user interface
+        # Collect valid articles and log errors
+        for article in fetched_articles:
+            if isinstance(article, Exception):
+                st.error(f"Error fetching article: {article}")
+            else:
+                articles.append(article)
+    return articles
+
+# Function to display articles
 def display_news(articles):
-    # Group by categories
     grouped_articles = {}
     for article in articles:
-        if article['category'] not in grouped_articles:
-            grouped_articles[article['category']] = []
-        grouped_articles[article['category']].append(article)
+        category = article['category']
+        grouped_articles.setdefault(category, []).append(article)
     
     for category, articles in grouped_articles.items():
         st.subheader(f"{category} ({len(articles)} articles)")
         for article in articles:
-            st.write(f"[{article['link']}]({article['link']}) - Published on {article['published']}")
+            st.write(f"[{article['title']}]({article['url']}) - Published on {article['published']}")
 
 # Main Streamlit app
 def main():
     st.title("IT News Aggregator")
-    
     if st.button("Fetch News"):
         st.write("Fetching latest IT news...")
-        # Fetch articles asynchronously
-        articles = asyncio.run(fetch_article())
-        # Display articles in Streamlit
+        articles = asyncio.run(fetch_articles())
         display_news(articles)
 
 if __name__ == '__main__':
