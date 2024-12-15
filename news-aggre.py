@@ -80,7 +80,7 @@ classifier.train(sample_texts, sample_labels)
 # Advanced Article Fetching and Processing
 async def fetch_and_process_article(session, url, classifier):
     """
-    Enhanced article fetching with more robust processing
+    Enhanced article fetching with metadata-based categorization for speed
     """
     try:
         async with session.get(url, timeout=10) as response:
@@ -90,22 +90,21 @@ async def fetch_and_process_article(session, url, classifier):
         article.set_html(html)
         article.parse()
 
-        # Combine multiple text sources for better classification
-        full_text = f"{article.title} {article.meta_description} {article.text}"
+        # Combine title and description for faster categorization
+        metadata_text = f"{article.title} {article.meta_description}"
         
         # Check if the article is in English
         lang, _ = langid.classify(article.title)
         if lang != 'en':
             return None
 
-        # Use the AI-powered classifier for categorization
-        category = classifier.predict(full_text)
+        # Use the AI-powered classifier for categorization based on metadata
+        category = classifier.predict(metadata_text)
 
-        # Prepare article metadata
+        # Prepare article metadata (without the full text)
         return {
             'title': article.title,
             'url': url,
-            'text': full_text,
             'published': article.publish_date.strftime('%Y-%m-%d') if article.publish_date else 'Unknown',
             'source': url.split('/')[2],
             'category': category
@@ -114,6 +113,7 @@ async def fetch_and_process_article(session, url, classifier):
     except Exception as e:
         st.error(f"Error processing {url}: {e}")
         return None
+
 
 # Main function to run the Streamlit app
 def main():
