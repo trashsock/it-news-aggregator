@@ -18,7 +18,8 @@ CATEGORIES = {
     'Blockchain & Cryptocurrency': ['blockchain', 'cryptocurrency', 'bitcoin', 'ethereum', 'decentralized finance', 'NFT', 'smart contracts', 'blockchain technology', 'cryptocurrency security', 'tokenization'],
     'Software Development & DevOps': ['devops', 'agile', 'software development', 'CI/CD', 'microservices', 'containers', 'docker', 'kubernetes', 'serverless computing', 'API', 'code deployment', 'version control'],
     'Networking & Infrastructure': ['networking', 'network', '5G', 'network security', 'SDN', 'wifi', 'IP addressing', 'internet of things', 'network infrastructure', 'VPN', 'router', 'firewall'],
-    'Tech Industry Trends': ['tech trends', 'technology news', 'innovation', 'startups', 'technology leadership', 'disruptive technology', 'future of IT', 'emerging tech', 'digital transformation']
+    'Tech Industry Trends': ['tech trends', 'technology news', 'innovation', 'startups', 'technology leadership', 'disruptive technology', 'future of IT', 'emerging tech', 'digital transformation'],
+    'Other': []  # Add 'Other' category as fallback
 }
 
 # Classifier for categorizing news articles
@@ -41,25 +42,21 @@ sample_texts = [
     "Robotic process automation (RPA) is transforming how companies handle routine tasks, enabling them to achieve greater efficiency and cost savings.",
     "AI-powered chatbots are now being used in customer service, offering instant support and improving customer satisfaction across industries.",
     "Generative AI is pushing the boundaries of creativity, enabling artists to collaborate with machines in ways never thought possible before.",
-    
     "Big data analytics allows organizations to gain insights into customer behavior, leading to more personalized and targeted marketing strategies.",
     "Predictive analytics is transforming the healthcare sector by forecasting disease outbreaks and improving patient care through data-driven insights.",
     "Data visualization tools are helping business leaders interpret complex data more effectively, making strategic decisions faster and with more confidence.",
     "Companies are increasingly using big data to optimize supply chains and inventory management, reducing costs and improving operational efficiency.",
     "With the rise of Internet of Things (IoT) devices, big data analytics is playing a key role in monitoring and optimizing smart city infrastructure.",
-    
     "Cybersecurity has become a top priority for businesses as cyberattacks become more sophisticated and frequent, threatening sensitive data.",
     "Zero-trust security models are gaining traction as they provide a more granular level of access control, improving enterprise security posture.",
     "Ransomware attacks have surged, prompting companies to invest heavily in robust backup strategies and endpoint protection.",
     "The rise of remote work has introduced new cybersecurity challenges, making it essential for businesses to adopt secure virtual private networks (VPNs).",
     "AI is being used to detect and prevent cybersecurity threats in real time, reducing the impact of data breaches and enhancing security measures.",
-    
     "Digital transformation is essential for organizations to stay competitive in a rapidly changing business environment, driven by technology and innovation.",
     "Cloud adoption is a key element of digital transformation, enabling businesses to scale quickly and access a wide array of computing resources on demand.",
     "The shift to mobile-first strategies is a significant aspect of digital transformation, as companies optimize their services for on-the-go customers.",
     "Automation is one of the most important drivers of digital transformation, helping companies streamline operations and reduce human error.",
     "Blockchain technology is revolutionizing digital transformation by offering secure, decentralized solutions for industries like finance and logistics.",
-    
     "Cloud computing offers businesses the flexibility to scale their IT infrastructure on demand, reducing the need for costly physical hardware.",
     "Edge computing is complementing cloud infrastructure by processing data closer to where it's generated, reducing latency and improving performance.",
     "Hybrid cloud environments are becoming increasingly popular as businesses seek to balance the security of private clouds with the scalability of public clouds.",
@@ -130,7 +127,7 @@ def main():
             'https://www.zdnet.com/news/rss.xml',
             'https://www.wired.com/feed/',
             'https://arstechnica.com/feed/',
-            'https://mashable.com/feed/',
+            'https://mashable.com/feed/',s
             'https://www.infoworld.com/index.rss',
             'https://www.networkworld.com/news/rss.xml',
             'https://www.computerworld.com/index.rss',
@@ -143,41 +140,35 @@ def main():
             "https://www.schneier.com/blog/atom.xml"
     ]
     
-    # Fetch articles automatically when the app loads
-    with st.spinner('Gathering insights from top tech sources...'):
-        try:
-            # Fetch articles asynchronously
-            async def fetch_all_articles():
-                async with aiohttp.ClientSession() as session:
-                    tasks = []
-                    for feed in RSS_FEEDS:
-                        parsed_feed = feedparser.parse(feed)
-                        for entry in parsed_feed.entries[:10]:  # Limit to 10 per feed
-                            tasks.append(fetch_and_process_article(session, entry.link, classifier))
-                    return [article for article in await asyncio.gather(*tasks) if article]
-            
-            articles = asyncio.run(fetch_all_articles())
-            
-            # Display Results
-            st.subheader("🌐 Tech Leadership Insights")
-            
-            # Group and display by AI-predicted categories
-            for category in CATEGORIES.keys():
-                category_articles = [art for art in articles if art['category'] == category]
-                
-                if category_articles:
-                    st.markdown(f"### {category}")
-                    for article in category_articles:
-                        st.markdown(f"**[{article['title']}]({article['url']})**")
-                        st.markdown(f"**Publisher:** {article['source']}")
-                        st.markdown(f"**Category:** {article['category']}")
-                        st.markdown(f"**Published on:** {article['published']}")
-                        st.markdown(f"**Description:** {article['text'][:200]}...")  # Show a short preview of the article text
+    # Streamlit UI components
+    st.sidebar.header("Filter by Category:")
+    selected_category = st.sidebar.selectbox("Select Category", list(CATEGORIES.keys()) + ['All'])
 
-                        st.markdown("---")  # Add a separator between articles
-            
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+    # Asynchronously fetch articles
+    async def fetch_all_articles():
+        articles = []
+        async with aiohttp.ClientSession() as session:
+            for feed_url in RSS_FEEDS:
+                feed = feedparser.parse(feed_url)
+                tasks = [fetch_and_process_article(session, entry.link, classifier) for entry in feed.entries]
+                articles.extend(await asyncio.gather(*tasks))
+        return articles
+    
+    # Run the async function
+    articles = asyncio.run(fetch_all_articles())
 
-if __name__ == '__main__':
-    main()
+    # Filter articles based on selected category
+    if selected_category != 'All':
+        articles = [article for article in articles if article['category'] == selected_category]
+
+    # Display articles
+    if articles:
+        for article in articles:
+            st.subheader(article['title'])
+            st.write(f"Category: {article['category']}")
+            st.write(f"Published on: {article['published']}")
+            st.write(f"Source: {article['source']}")
+            st.write(article['text'][:500] + '...')  # Limit to first 500 characters
+            st.markdown(f"[Read full article]({article['url']})")
+    else:
+        st.write("No articles to display.")
