@@ -5,6 +5,7 @@ from newspaper import Article
 import feedparser
 import pandas as pd
 import numpy as np
+import langid
 
 # Machine Learning Libraries
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -134,6 +135,11 @@ async def fetch_and_process_article(session, url):
                     return category
             return 'Other'
 
+        # Check if the article is in English
+        lang, _ = langid.classify(article.title)
+        if lang != 'en':
+            return None
+        
         # Prepare article metadata
         return {
             'title': article.title,
@@ -154,21 +160,14 @@ def main():
     
     # RSS Feeds focused on enterprise and technology leadership
     RSS_FEEDS = [
-            'https://www.cio.com/feed/',
-            'https://techcrunch.com/feed/',
-            'https://www.theverge.com/rss/index.xml',
-            'https://www.zdnet.com/news/rss.xml',
-            'https://www.wired.com/feed/',
-            'https://arstechnica.com/feed/',
-            'https://mashable.com/feed/',
-            'https://www.infoworld.com/index.rss',
-            'https://www.networkworld.com/news/rss.xml',
-            'https://www.computerworld.com/index.rss',
-            "https://asia.nikkei.com/rss",
-            "https://www.bloomberg.com/feeds/bbiz.xml",
-            "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best",
-            "https://apnews.com/rss"
-        ]
+        'https://www.cio.com/feed/',
+        'https://techcrunch.com/feed/',
+        'https://www.zdnet.com/news/rss.xml',
+        'https://www.wired.com/feed/',
+        'https://www.infoworld.com/index.rss',
+        'https://www.computerworld.com/index.rss'
+    ]
+    
     # Fetch News Button
     if st.button("🔍 Fetch Latest Tech Insights"):
         # Spinner for loading
