@@ -168,7 +168,7 @@ def main():
             st.write(f"Category: {article['category']}")
             st.write(f"Published on: {article['published']}")
             st.write(f"Source: {article['source']}")
-            st.write(article['text'][:500] + '...')  # Limit to first 500 characters
+            st.write(article['text'][:200] + '...')  # Limit to first 500 characters
             st.markdown(f"[Read full article]({article['url']})")
     else:
         st.write("No articles to display.")
