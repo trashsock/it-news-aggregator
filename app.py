@@ -104,7 +104,10 @@ async def fetch_articles():
             "https://asia.nikkei.com/rss",
             "https://www.bloomberg.com/feeds/bbiz.xml",
             "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best",
-            "https://apnews.com/rss"
+            "https://apnews.com/rss",
+            "https://www.grahamcluley.com/feed/",
+            "https://feeds.feedburner.com/TheHackersNews?format=xml",
+            "https://www.schneier.com/blog/atom.xml"
         ]
         tasks = [fetch_article(session, entry.link) for feed in rss_feeds for entry in feedparser.parse(feed).entries]
         fetched_articles = await asyncio.gather(*tasks, return_exceptions=True)

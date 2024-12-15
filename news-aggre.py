@@ -1,117 +1,58 @@
-import streamlit as st
 import asyncio
-import aiohttp
-from newspaper import Article
 import feedparser
-import pandas as pd
-import numpy as np
+import aiohttp
+import streamlit as st
+from newspaper import Article
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import make_pipeline
 import langid
 
-# Machine Learning Libraries
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.preprocessing import LabelEncoder
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import LinearSVC
-
-# Additional NLP
-import nltk
-nltk.download('stopwords', quiet=True)
-from nltk.corpus import stopwords
-import re
-
-# Configure logging
-import logging
-logging.basicConfig(level=logging.INFO)
-
-# CIO-Focused Categories with Sophisticated Keyword Mapping
+# Define the categories (you can expand this list with more categories)
 CATEGORIES = {
-    'AI & Emerging Technologies': [
-        'artificial intelligence', 'machine learning', 'generative ai', 'gpt', 
-        'llm', 'neural networks', 'deep learning', 'predictive ai', 'cognitive computing', 
-        'transformative technology', 'algorithmic innovation'
-    ],
-    'Big Data & Analytics': [
-        'data analytics', 'big data', 'business intelligence', 'predictive analytics', 
-        'data science', 'data visualization', 'machine learning analytics', 
-        'enterprise data strategy', 'data-driven decision making'
-    ],
-    'Cybersecurity': [
-        'cybersecurity', 'data breach', 'ransomware', 'threat intelligence', 
-        'information security', 'network protection', 'zero trust', 
-        'security strategy', 'cyber resilience', 'risk mitigation'
-    ],
-    'Digital Transformation': [
-        'digital transformation', 'digital strategy', 'technology innovation', 
-        'business model disruption', 'digital ecosystem', 'technological convergence', 
-        'strategic technology', 'enterprise modernization'
-    ],
-    'Enterprise IT Strategy': [
-        'it governance', 'technology leadership', 'enterprise architecture', 
-        'strategic planning', 'digital innovation', 'it infrastructure', 
-        'organizational change', 'technology roadmap'
-    ],
-    'Cloud & Infrastructure': [
-        'cloud computing', 'hybrid cloud', 'multi-cloud', 'cloud strategy', 
-        'infrastructure as code', 'serverless', 'cloud migration', 
-        'edge computing', 'cloud security'
-    ]
+    'AI & Emerging Technologies': 'Artificial Intelligence, Machine Learning, Robotics, etc.',
+    'Big Data & Analytics': 'Data Science, Big Data, Predictive Analytics, etc.',
+    'Cybersecurity': 'Network Security, Data Protection, Privacy, etc.',
+    'Digital Transformation': 'Cloud Computing, IT, Business Transformation, etc.',
+    'Cloud & Infrastructure': 'Cloud Services, IT Infrastructure, DevOps, etc.'
 }
 
-# Text Preprocessing Function
-def preprocess_text(text):
-    """
-    Advanced text preprocessing for ML model
-    """
-    # Convert to lowercase
-    text = text.lower()
-    
-    # Remove special characters and digits
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
-    
-    # Remove extra whitespaces
-    text = re.sub(r'\s+', ' ', text).strip()
-    
-    # Remove stopwords
-    stop_words = set(stopwords.words('english'))
-    text = ' '.join([word for word in text.split() if word not in stop_words])
-    
-    return text
-
-# Advanced Multi-Label Classifier
+# Classifier for categorizing news articles
 class CIONewsClassifier:
     def __init__(self):
-        self.vectorizer = TfidfVectorizer(max_features=5000)
-        self.label_encoder = LabelEncoder()
-        self.classifier = None
-    
+        self.model = make_pipeline(TfidfVectorizer(), MultinomialNB())
+
     def train(self, texts, labels):
-        """
-        Train a multi-label classifier
-        """
-        # Preprocess texts
-        processed_texts = [preprocess_text(text) for text in texts]
-        
-        # Vectorize texts
-        X = self.vectorizer.fit_transform(processed_texts)
-        
-        # Encode labels
-        y = self.label_encoder.fit_transform(labels)
-        
-        # Train SVM Classifier
-        self.classifier = OneVsRestClassifier(LinearSVC(random_state=42))
-        self.classifier.fit(X, y)
-    
+        """ Train the classifier on provided texts and labels """
+        self.model.fit(texts, labels)
+
     def predict(self, text):
-        """
-        Predict category for a given text
-        """
-        processed_text = preprocess_text(text)
-        X_test = self.vectorizer.transform([processed_text])
-        prediction = self.classifier.predict(X_test)
-        return self.label_encoder.inverse_transform(prediction)[0]
+        """ Predict the category for a given text """
+        return self.model.predict([text])[0]
+
+# Sample text data and corresponding labels for training
+sample_texts = [
+    "Artificial intelligence is revolutionizing business.",
+    "Data science is crucial for modern business analytics.",
+    "Cybersecurity is a critical part of enterprise strategy.",
+    "Digital transformation is driving change in industries.",
+    "Cloud computing is essential for modern IT infrastructure."
+]
+
+sample_labels = [
+    'AI & Emerging Technologies',
+    'Big Data & Analytics',
+    'Cybersecurity',
+    'Digital Transformation',
+    'Cloud & Infrastructure'
+]
+
+# Train the classifier
+classifier = CIONewsClassifier()
+classifier.train(sample_texts, sample_labels)
 
 # Advanced Article Fetching and Processing
-async def fetch_and_process_article(session, url):
+async def fetch_and_process_article(session, url, classifier):
     """
     Enhanced article fetching with more robust processing
     """
@@ -132,7 +73,6 @@ async def fetch_and_process_article(session, url):
             return None
 
         # Use the AI-powered classifier for categorization
-        classifier = CIONewsClassifier()
         category = classifier.predict(full_text)
 
         # Prepare article metadata
@@ -149,28 +89,29 @@ async def fetch_and_process_article(session, url):
         st.error(f"Error processing {url}: {e}")
         return None
 
-# Main Streamlit Application
+# Main function to run the Streamlit app
 def main():
     st.title("🚀 CIO Tech Insight Aggregator")
     
     # RSS Feeds focused on enterprise and technology leadership
     RSS_FEEDS = [
-        'https://www.cio.com/feed/',
-        'https://techcrunch.com/feed/',
-        'https://www.theverge.com/rss/index.xml',
-        'https://www.zdnet.com/news/rss.xml',
-        'https://www.wired.com/feed/',
-        'https://arstechnica.com/feed/',
-        'https://mashable.com/feed/',
-        'https://www.infoworld.com/index.rss',
-        'https://www.networkworld.com/news/rss.xml',
-        'https://www.computerworld.com/index.rss',
-        "https://asia.nikkei.com/rss",
-        "https://www.bloomberg.com/feeds/bbiz.xml",
-        "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best",
-        "https://apnews.com/rss",
-        "https://feeds.feedburner.com/TheHackersNews?format=xml",
-        "https://www.grahamcluley.com/feed/"
+            'https://www.cio.com/feed/',
+            'https://techcrunch.com/feed/',
+            'https://www.theverge.com/rss/index.xml',
+            'https://www.zdnet.com/news/rss.xml',
+            'https://www.wired.com/feed/',
+            'https://arstechnica.com/feed/',
+            'https://mashable.com/feed/',
+            'https://www.infoworld.com/index.rss',
+            'https://www.networkworld.com/news/rss.xml',
+            'https://www.computerworld.com/index.rss',
+            "https://asia.nikkei.com/rss",
+            "https://www.bloomberg.com/feeds/bbiz.xml",
+            "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best",
+            "https://apnews.com/rss",
+            "https://www.grahamcluley.com/feed/",
+            "https://feeds.feedburner.com/TheHackersNews?format=xml",
+            "https://www.schneier.com/blog/atom.xml"
     ]
     
     # Fetch articles automatically when the app loads
@@ -183,7 +124,7 @@ def main():
                     for feed in RSS_FEEDS:
                         parsed_feed = feedparser.parse(feed)
                         for entry in parsed_feed.entries[:10]:  # Limit to 10 per feed
-                            tasks.append(fetch_and_process_article(session, entry.link))
+                            tasks.append(fetch_and_process_article(session, entry.link, classifier))
                     return [article for article in await asyncio.gather(*tasks) if article]
             
             articles = asyncio.run(fetch_all_articles())
