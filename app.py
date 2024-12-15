@@ -3,7 +3,7 @@ import asyncio
 import aiohttp
 from newspaper import Article
 import feedparser
-from langdetect import detect, LangDetectException
+import langid  # Using langid for better language detection
 
 # Meta tag to allow iframe embedding
 st.markdown(
@@ -39,11 +39,12 @@ def categorize_by_keywords(text):
             return category
     return 'Other'
 
-# Function to detect if the article is in English
+# Function to detect if the article is in English using langid
 def is_english(text):
     try:
-        return detect(text) == 'en'
-    except LangDetectException:
+        lang, _ = langid.classify(text)
+        return lang == 'en'
+    except Exception as e:
         return False
 
 # Function to fetch an article's content
@@ -72,7 +73,7 @@ async def fetch_article(session, url):
     # Get the publisher (from the URL)
     publisher = article.source_url.split('/')[2] if article.source_url else "Unknown"
 
-    # Check if the article is in English
+    # Check if the article is in English using langid
     if not is_english(article.text):
         return None  # Skip non-English articles
 
@@ -133,8 +134,8 @@ def display_news(articles):
             st.markdown(f"**Description:** {article['text'][:200]}...")  # Show a short preview of the article text
 
             # Optional: Display a button to open the full article
-            if st.button(f"Read full article: {article['title']}", key=article['url']):
-                st.markdown(f"[Click here to read the full article]({article['url']})")
+            # if st.button(f"Read full article: {article['title']}", key=article['url']):
+            #     st.markdown(f"[Click here to read the full article]({article['url']})")
             st.markdown("---")  # Add a separator between articles
 
 # Main Streamlit app
