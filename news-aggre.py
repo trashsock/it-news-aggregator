@@ -127,7 +127,7 @@ def main():
             'https://www.zdnet.com/news/rss.xml',
             'https://www.wired.com/feed/',
             'https://arstechnica.com/feed/',
-            'https://mashable.com/feed/',s
+            'https://mashable.com/feed/',
             'https://www.infoworld.com/index.rss',
             'https://www.networkworld.com/news/rss.xml',
             'https://www.computerworld.com/index.rss',
@@ -138,7 +138,7 @@ def main():
             "https://www.grahamcluley.com/feed/",
             "https://feeds.feedburner.com/TheHackersNews?format=xml",
             "https://www.schneier.com/blog/atom.xml"
-    ]
+        ]
     
     # Streamlit UI components
     st.sidebar.header("Filter by Category:")
