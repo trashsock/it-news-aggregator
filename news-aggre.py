@@ -67,12 +67,13 @@ sample_texts = [
     "As companies move more services to the cloud, managing cloud costs effectively has become a key challenge, requiring tools to monitor usage and optimize spending."
 ]
 
+# Ensure that there are 25 corresponding labels
 sample_labels = [
-    'AI & Emerging Technologies',
-    'Big Data & Analytics',
-    'Cybersecurity',
-    'Digital Transformation',
-    'Cloud & Infrastructure'
+    'AI & Emerging Technologies', 'AI & Emerging Technologies', 'AI & Emerging Technologies', 'AI & Emerging Technologies', 'AI & Emerging Technologies',
+    'Big Data & Analytics', 'Big Data & Analytics', 'Big Data & Analytics', 'Big Data & Analytics', 'Big Data & Analytics',
+    'Cybersecurity', 'Cybersecurity', 'Cybersecurity', 'Cybersecurity', 'Cybersecurity',
+    'Digital Transformation', 'Digital Transformation', 'Digital Transformation', 'Digital Transformation', 'Digital Transformation',
+    'Cloud & Infrastructure', 'Cloud & Infrastructure', 'Cloud & Infrastructure', 'Cloud & Infrastructure', 'Cloud & Infrastructure'
 ]
 
 # Train the classifier
