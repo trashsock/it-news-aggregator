@@ -44,23 +44,44 @@ class RobustNewsClassifier:
 
 # Sample training data
 sample_texts = [
-    "The future of artificial intelligence lies in the development of explainable AI models, which will enable businesses to trust machine decisions.",
-    "Quantum computing is expected to disrupt industries by solving problems that classical computers cannot, such as drug discovery and climate modeling.",
-    "Cybersecurity has become a top priority for businesses as cyberattacks become more sophisticated and frequent, threatening sensitive data.",
-    "Cloud computing offers businesses the flexibility to scale their IT infrastructure on demand, reducing the need for costly physical hardware.",
-    "Blockchain technology is revolutionizing digital transformation by offering secure, decentralized solutions for industries like finance and logistics."
+    # AI/ML Samples
+    "Machine learning algorithms are transforming predictive analytics in healthcare.",
+    "Neural networks enable more accurate image recognition technologies.",
+    "AI is revolutionizing customer service through intelligent chatbots.",
+    
+    # Cybersecurity Samples
+    "Zero-trust security models provide enhanced protection against modern cyber threats.",
+    "Ransomware attacks continue to challenge enterprise security strategies.",
+    "Blockchain technology offers new approaches to secure digital transactions.",
+    
+    # Cloud Computing Samples
+    "Hybrid cloud architectures offer flexibility for enterprise IT infrastructure.",
+    "Serverless computing reduces operational overhead for development teams.",
+    "Multi-cloud strategies help organizations avoid vendor lock-in.",
+    
+    # DevOps Samples
+    "Continuous integration improves software deployment efficiency.",
+    "Microservices architecture enables more scalable application development.",
+    "Infrastructure as Code (IaC) transforms system administration practices.",
+    
+    # Data Analytics Samples
+    "Big data analytics provide actionable insights for business strategy.",
+    "Predictive modeling helps companies forecast market trends accurately.",
+    "Data visualization tools make complex information more accessible."
 ]
 
-sample_labels = [
-    'AI/ML', 'AI/ML', 
-    'Cybersecurity', 
-    'Cloud Computing', 
-    'Blockchain & Cryptocurrency'
+# Create labels matching the texts
+labels = [
+    'AI/ML', 'AI/ML', 'AI/ML',
+    'Cybersecurity', 'Cybersecurity', 'Cybersecurity',
+    'Cloud Computing', 'Cloud Computing', 'Cloud Computing',
+    'Software Development & DevOps', 'Software Development & DevOps', 'Software Development & DevOps',
+    'Data Analytics & Big Data', 'Data Analytics & Big Data', 'Data Analytics & Big Data'
 ]
 
 # Global classifier
 classifier = RobustNewsClassifier()
-classifier.train(sample_texts, sample_labels)
+classifier.train(sample_texts, labels)
 
 @lru_cache(maxsize=500)
 def classify_article(text):
@@ -121,8 +142,8 @@ async def process_article(session, url, semaphore):
             return None
 
 def main():
-    st.set_page_config(page_title="Tech News Aggregator", layout="wide")
-    st.title("🚀 Tech News Insight Aggregator")
+    st.set_page_config(page_title="🚀Tech News Insights🖥️", layout="wide")
+    st.title("🚀Tech News Insights🖥️")
     
     # Full list of RSS Feeds
     RSS_FEEDS = [
