@@ -10,6 +10,7 @@ import langid
 from functools import lru_cache
 import logging
 from urllib.parse import urlparse
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s')
@@ -200,30 +201,37 @@ def main():
         
         return articles
     
-    # Run the async function
-    try:
+       # Infinite loop to refresh every 60 minutes
+    while True:
         # Fetch all articles
-        articles = asyncio.run(fetch_all_articles())
+        try:
+            articles = asyncio.run(fetch_all_articles())
 
-        # Filter articles if a specific category is selected
-        if selected_category:
-            articles = [article for article in articles if article['category'] == selected_category]
+            # Filter articles if a specific category is selected
+            if selected_category:
+                articles = [article for article in articles if article['category'] == selected_category]
 
-        # Display articles
-        if articles:
-            for article in articles:
-                st.subheader(article['title'])
-                st.write(f"Category: {article['category']}")
-                st.write(f"Published on: {article['published']}")
-                st.write(f"Source: {article['source']}")
-                st.write(article['description'][:200] + '...')  # Limit to first 200 characters
-                st.markdown(f"[Read full article]({article['url']})")
-                st.divider()
-        else:
-            st.write("No articles to display.")
+            # Display articles
+            if articles:
+                for article in articles:
+                    st.subheader(article['title'])
+                    st.write(f"Category: {article['category']}")
+                    st.write(f"Published on: {article['published']}")
+                    st.write(f"Source: {article['source']}")
+                    description_text = article['description'] or "No description available."
+                    if len(description_text) > 200:
+                        description_text = description_text[:200] + '...'
+                    st.write(description_text)
+                    st.markdown(f"[Read full article]({article['url']})")
+                    st.divider()
+            else:
+                st.write("No articles to display.")
 
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+
+        # Wait for 60 minutes before refreshing the data
+        time.sleep(3600)  # Sleep for 3600 seconds (60 minutes)
 
 if __name__ == "__main__":
     main()
