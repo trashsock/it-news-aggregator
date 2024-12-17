@@ -257,37 +257,34 @@ def main():
         
         return articles
     
-       # Infinite loop to refresh every 60 minutes
-    while True:
-        # Fetch all articles
-        try:
-            articles = asyncio.run(fetch_all_articles())
 
-            # Filter articles if a specific category is selected
-            if selected_category:
-                articles = [article for article in articles if article['category'] == selected_category]
+    # Fetch all articles
+    try:
+        articles = asyncio.run(fetch_all_articles())
 
-            # Display articles
-            if articles:
-                for article in articles:
-                    st.subheader(article['title'])
-                    st.write(f"Category: {article['category']}")
-                    st.write(f"Published on: {article['published']}")
-                    st.write(f"Source: {article['source']}")
-                    description_text = article['description'] or "No description available."
-                    if len(description_text) > 200:
-                        description_text = description_text[:200] + '...'
-                    st.write(description_text)
-                    st.markdown(f"[Read full article]({article['url']})")
-                    st.divider()
-            else:
-                st.write("No articles to display.")
+        # Filter articles if a specific category is selected
+        if selected_category:
+            articles = [article for article in articles if article['category'] == selected_category]
 
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+        # Display articles
+        if articles:
+            for article in articles:
+                st.subheader(article['title'])
+                st.write(f"Category: {article['category']}")
+                st.write(f"Published on: {article['published']}")
+                st.write(f"Source: {article['source']}")
+                description_text = article['description'] or "No description available."
+                if len(description_text) > 200:
+                    description_text = description_text[:200] + '...'
+                st.write(description_text)
+                st.markdown(f"[Read full article]({article['url']})")
+                st.divider()
+        else:
+            st.write("No articles to display.")
 
-        # Wait for 60 minutes before refreshing the data
-        time.sleep(3600)  # Sleep for 3600 seconds (60 minutes)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+
 
 if __name__ == "__main__":
     main()
